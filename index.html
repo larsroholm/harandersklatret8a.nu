@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<title>Har Anders Bøgen klatret 8a nu?</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%91%8E</text></svg>">
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Comic Sans MS", "Segoe UI", Arial, sans-serif;
+    background: #0d0221;
+  }
+
+  #stage {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+  }
+
+  .word {
+    position: relative;
+    font-weight: 900;
+    font-size: 17vw;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #fffbe8;
+    -webkit-text-stroke: 2px #ff2fd0;
+    animation: pulse 2.2s ease-in-out infinite, wobble 4s ease-in-out infinite, rainbow 4s linear infinite;
+    text-shadow:
+      0 0 10px #ff2fd0,
+      0 0 25px #7b2ff7,
+      0 0 45px #00e5ff,
+      0 0 80px #ff2fd0;
+    user-select: none;
+    cursor: pointer;
+  }
+
+  @keyframes rainbow {
+    0%   { -webkit-text-stroke-color: #ff2fd0; }
+    33%  { -webkit-text-stroke-color: #00e5ff; }
+    66%  { -webkit-text-stroke-color: #ffe94c; }
+    100% { -webkit-text-stroke-color: #ff2fd0; }
+  }
+
+  .word.glitch::before,
+  .word.glitch::after {
+    content: 'Nej';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    overflow: hidden;
+    -webkit-text-stroke: 0;
+  }
+
+  .word.glitch::before {
+    color: #00e5ff;
+    animation: glitchTop 0.25s steps(2, jump-none) infinite;
+    clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
+    mix-blend-mode: screen;
+  }
+
+  .word.glitch::after {
+    color: #ff2fd0;
+    animation: glitchBottom 0.3s steps(2, jump-none) infinite;
+    clip-path: polygon(0 55%, 100% 55%, 100% 100%, 0 100%);
+    mix-blend-mode: screen;
+  }
+
+  @keyframes glitchTop {
+    0%   { transform: translate(0, 0); }
+    20%  { transform: translate(-6px, -2px); }
+    40%  { transform: translate(6px, 2px); }
+    60%  { transform: translate(-4px, 1px); }
+    80%  { transform: translate(4px, -1px); }
+    100% { transform: translate(0, 0); }
+  }
+
+  @keyframes glitchBottom {
+    0%   { transform: translate(0, 0); }
+    20%  { transform: translate(6px, 1px); }
+    40%  { transform: translate(-6px, -1px); }
+    60%  { transform: translate(4px, -2px); }
+    80%  { transform: translate(-4px, 2px); }
+    100% { transform: translate(0, 0); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1) rotate(0deg); }
+    50% { transform: scale(1.08) rotate(0deg); }
+  }
+
+  @keyframes wobble {
+    0%, 100% { rotate: -1.5deg; }
+    50% { rotate: 1.5deg; }
+  }
+
+  body.shake {
+    animation: shake 0.4s ease-in-out;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translate(0, 0); }
+    20% { transform: translate(-8px, 6px); }
+    40% { transform: translate(8px, -6px); }
+    60% { transform: translate(-6px, -8px); }
+    80% { transform: translate(6px, 8px); }
+  }
+
+  canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+  }
+
+  #fxCanvas {
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  .emoji {
+    position: fixed;
+    font-size: var(--size, 3vmin);
+    z-index: 2;
+    pointer-events: none;
+    filter: drop-shadow(0 0 6px rgba(0,0,0,0.5));
+    left: 0;
+    top: 0;
+    will-change: transform;
+  }
+
+
+  #strobe {
+    position: fixed;
+    inset: 0;
+    background: #fff;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 10;
+    mix-blend-mode: overlay;
+  }
+
+  #strobe.flash {
+    animation: strobeFlash 0.15s ease-out;
+  }
+
+  @keyframes strobeFlash {
+    0%   { opacity: 0.9; }
+    100% { opacity: 0; }
+  }
+
+  .word.dvd {
+    position: fixed;
+    animation: pulse 2.2s ease-in-out infinite, rainbow 4s linear infinite;
+  }
+
+  body.zoomPunch {
+    animation: zoomPunch 0.35s ease-out;
+  }
+
+  @keyframes zoomPunch {
+    0%   { transform: scale(1); }
+    30%  { transform: scale(1.06); }
+    100% { transform: scale(1); }
+  }
+
+  #stage {
+    transform-origin: center;
+  }
+
+</style>
+</head>
+<body>
+  <canvas id="bg"></canvas>
+  <canvas id="fxCanvas"></canvas>
+  <div id="strobe"></div>
+
+  <div id="stage">
+    <div class="word glitch" id="word">Nej</div>
+  </div>
+
+  <script>
+    // ---------- Floating emojis (thumbs down / poop / climber / rofl) ----------
+    const emojiChoices = ['👎', '💩', '🧗', '🤣'];
+    const emojiCount = 24;
+    const bouncingEmojis = [];
+    for (let i = 0; i < emojiCount; i++) {
+      const el = document.createElement('div');
+      el.className = 'emoji';
+      el.textContent = emojiChoices[Math.floor(Math.random() * emojiChoices.length)];
+      const size = Math.random() * 3 + 2; // vmin
+      el.style.setProperty('--size', `${size}vmin`);
+      document.body.appendChild(el);
+
+      const sizePx = (size / 100) * Math.min(window.innerWidth, window.innerHeight);
+      bouncingEmojis.push({
+        el,
+        x: Math.random() * (window.innerWidth - sizePx),
+        y: Math.random() * (window.innerHeight - sizePx),
+        vx: (Math.random() < 0.5 ? -1 : 1) * (0.6 + Math.random() * 1.4),
+        vy: (Math.random() < 0.5 ? -1 : 1) * (0.6 + Math.random() * 1.4),
+        size: sizePx
+      });
+    }
+
+    function stepEmojis() {
+      for (const b of bouncingEmojis) {
+        b.x += b.vx;
+        b.y += b.vy;
+        if (b.x <= 0) { b.x = 0; b.vx *= -1; }
+        if (b.x + b.size >= window.innerWidth) { b.x = window.innerWidth - b.size; b.vx *= -1; }
+        if (b.y <= 0) { b.y = 0; b.vy *= -1; }
+        if (b.y + b.size >= window.innerHeight) { b.y = window.innerHeight - b.size; b.vy *= -1; }
+        b.el.style.transform = `translate(${b.x}px, ${b.y}px)`;
+      }
+      requestAnimationFrame(stepEmojis);
+    }
+    stepEmojis();
+
+    // ---------- Canvas setup ----------
+    const bgCanvas = document.getElementById('bg');
+    const bgCtx = bgCanvas.getContext('2d');
+    const fxCanvas = document.getElementById('fxCanvas');
+    const fxCtx = fxCanvas.getContext('2d');
+    let width, height;
+
+    function resize() {
+      width = bgCanvas.width = fxCanvas.width = window.innerWidth;
+      height = bgCanvas.height = fxCanvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // ---------- Background neon particles ----------
+    const particles = Array.from({ length: 140 }, () => makeParticle());
+    const neonHues = [320, 190, 50, 280];
+
+    function makeParticle() {
+      return {
+        x: Math.random() * width,
+        y: Math.random() * height,
+        r: Math.random() * 2.2 + 0.5,
+        speedX: (Math.random() - 0.5) * 0.5,
+        speedY: (Math.random() - 0.5) * 0.5,
+        alpha: Math.random() * 0.5 + 0.2,
+        hue: neonHues[Math.floor(Math.random() * neonHues.length)]
+      };
+    }
+
+    function drawBackground() {
+      bgCtx.clearRect(0, 0, width, height);
+      for (const p of particles) {
+        p.x += p.speedX;
+        p.y += p.speedY;
+
+        if (p.x < 0) p.x = width;
+        if (p.x > width) p.x = 0;
+        if (p.y < 0) p.y = height;
+        if (p.y > height) p.y = 0;
+
+        bgCtx.beginPath();
+        bgCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        bgCtx.fillStyle = `hsla(${p.hue}, 100%, 65%, ${p.alpha})`;
+        bgCtx.fill();
+      }
+      requestAnimationFrame(drawBackground);
+    }
+    drawBackground();
+
+    // ---------- FX particle systems (neon burst / ripples / laser bolts) ----------
+    const fxParticles = [];
+    const ripples = [];
+    const lasers = [];
+
+    function spawnBurst(x, y, count = 60) {
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 6 + 2;
+        fxParticles.push({
+          x, y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 1,
+          decay: Math.random() * 0.02 + 0.01,
+          size: Math.random() * 4 + 2,
+          hue: neonHues[Math.floor(Math.random() * neonHues.length)],
+          gravity: 0.05
+        });
+      }
+    }
+
+    function spawnRipple(x, y) {
+      ripples.push({ x, y, r: 0, alpha: 1, hue: neonHues[Math.floor(Math.random() * neonHues.length)] });
+    }
+
+    function spawnLaser() {
+      const y = Math.random() * height * 0.6;
+      lasers.push({ y, life: 1, hue: neonHues[Math.floor(Math.random() * neonHues.length)] });
+    }
+
+    // ---------- Emoji confetti burst ----------
+    const emojiBits = [];
+    const burstEmojis = ['👎', '💩', '🧗', '🤣', '⭐', '💥'];
+
+    function spawnEmojiBurst(x, y, count = 20) {
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 7 + 2;
+        emojiBits.push({
+          x, y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 2,
+          life: 1,
+          decay: Math.random() * 0.015 + 0.008,
+          size: Math.random() * 20 + 20,
+          gravity: 0.15,
+          rot: Math.random() * Math.PI * 2,
+          vr: (Math.random() - 0.5) * 0.3,
+          char: burstEmojis[Math.floor(Math.random() * burstEmojis.length)]
+        });
+      }
+    }
+
+    // ---------- Strobe flash ----------
+    const strobeEl = document.getElementById('strobe');
+    function triggerStrobe() {
+      strobeEl.classList.remove('flash');
+      void strobeEl.offsetWidth; // restart animation
+      strobeEl.classList.add('flash');
+    }
+
+    // ---------- Zoom punch ----------
+    function triggerZoomPunch() {
+      document.body.classList.remove('zoomPunch');
+      void document.body.offsetWidth;
+      document.body.classList.add('zoomPunch');
+      setTimeout(() => document.body.classList.remove('zoomPunch'), 400);
+    }
+
+    // ---------- DVD-logo bounce mode for the word ----------
+    let dvdActive = false;
+    function startDvdBounce(duration = 4000) {
+      if (dvdActive) return;
+      dvdActive = true;
+      const stageEl = document.getElementById('stage');
+      const wordRect = wordEl.getBoundingClientRect();
+      let x = Math.random() * (width - wordRect.width);
+      let y = Math.random() * (height - wordRect.height);
+      let vx = (Math.random() < 0.5 ? -1 : 1) * (3 + Math.random() * 3);
+      let vy = (Math.random() < 0.5 ? -1 : 1) * (3 + Math.random() * 3);
+      stageEl.style.position = 'fixed';
+      stageEl.style.left = '0';
+      stageEl.style.top = '0';
+      stageEl.style.transform = 'none';
+
+      const w = wordRect.width, h = wordRect.height;
+      let raf;
+      function step() {
+        x += vx;
+        y += vy;
+        if (x <= 0 || x + w >= width) { vx *= -1; triggerStrobe(); }
+        if (y <= 0 || y + h >= height) { vy *= -1; triggerStrobe(); }
+        stageEl.style.transform = `translate(${x}px, ${y}px)`;
+        raf = requestAnimationFrame(step);
+      }
+      step();
+
+      setTimeout(() => {
+        cancelAnimationFrame(raf);
+        dvdActive = false;
+        stageEl.style.position = '';
+        stageEl.style.left = '';
+        stageEl.style.top = '';
+        stageEl.style.transform = '';
+      }, duration);
+    }
+
+    function drawFx() {
+      fxCtx.clearRect(0, 0, width, height);
+
+      // neon burst
+      for (let i = fxParticles.length - 1; i >= 0; i--) {
+        const p = fxParticles[i];
+        p.vy += p.gravity;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= p.decay;
+        if (p.life <= 0) {
+          fxParticles.splice(i, 1);
+          continue;
+        }
+        fxCtx.beginPath();
+        fxCtx.globalAlpha = Math.max(p.life, 0);
+        fxCtx.fillStyle = `hsl(${p.hue}, 100%, 60%)`;
+        fxCtx.shadowColor = `hsl(${p.hue}, 100%, 60%)`;
+        fxCtx.shadowBlur = 10;
+        fxCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        fxCtx.fill();
+      }
+      fxCtx.globalAlpha = 1;
+      fxCtx.shadowBlur = 0;
+
+      // ripples
+      for (let i = ripples.length - 1; i >= 0; i--) {
+        const r = ripples[i];
+        r.r += 6;
+        r.alpha -= 0.02;
+        if (r.alpha <= 0) {
+          ripples.splice(i, 1);
+          continue;
+        }
+        fxCtx.beginPath();
+        fxCtx.strokeStyle = `hsla(${r.hue}, 100%, 70%, ${r.alpha})`;
+        fxCtx.lineWidth = 3;
+        fxCtx.arc(r.x, r.y, r.r, 0, Math.PI * 2);
+        fxCtx.stroke();
+      }
+
+      // laser scanlines
+      for (let i = lasers.length - 1; i >= 0; i--) {
+        const l = lasers[i];
+        l.life -= 0.08;
+        if (l.life <= 0) {
+          lasers.splice(i, 1);
+          continue;
+        }
+        fxCtx.beginPath();
+        fxCtx.strokeStyle = `hsla(${l.hue}, 100%, 65%, ${l.life})`;
+        fxCtx.lineWidth = 4;
+        fxCtx.shadowColor = `hsl(${l.hue}, 100%, 65%)`;
+        fxCtx.shadowBlur = 20;
+        fxCtx.moveTo(0, l.y);
+        fxCtx.lineTo(width, l.y);
+        fxCtx.stroke();
+        fxCtx.shadowBlur = 0;
+      }
+
+      // emoji confetti
+      for (let i = emojiBits.length - 1; i >= 0; i--) {
+        const e = emojiBits[i];
+        e.vy += e.gravity;
+        e.x += e.vx;
+        e.y += e.vy;
+        e.rot += e.vr;
+        e.life -= e.decay;
+        if (e.life <= 0) {
+          emojiBits.splice(i, 1);
+          continue;
+        }
+        fxCtx.save();
+        fxCtx.globalAlpha = Math.max(e.life, 0);
+        fxCtx.translate(e.x, e.y);
+        fxCtx.rotate(e.rot);
+        fxCtx.font = `${e.size}px sans-serif`;
+        fxCtx.textAlign = 'center';
+        fxCtx.textBaseline = 'middle';
+        fxCtx.fillText(e.char, 0, 0);
+        fxCtx.restore();
+      }
+      fxCtx.globalAlpha = 1;
+
+      requestAnimationFrame(drawFx);
+    }
+    drawFx();
+
+    // ---------- Sound (Web Audio API, no external files) ----------
+    let audioCtx = null;
+    function getAudioCtx() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      return audioCtx;
+    }
+
+    function playBlip(freq = 440, duration = 0.15, type = 'sine', volume = 0.15) {
+      const ctxA = getAudioCtx();
+      const osc = ctxA.createOscillator();
+      const gain = ctxA.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, ctxA.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(Math.max(freq * (Math.random() * 1.5 + 0.4), 40), ctxA.currentTime + duration);
+      gain.gain.setValueAtTime(volume, ctxA.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctxA.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(ctxA.destination);
+      osc.start();
+      osc.stop(ctxA.currentTime + duration);
+    }
+
+    function playSynthStab() {
+      const notes = [261.6, 329.6, 392.0, 523.3];
+      notes.forEach((n, i) => {
+        setTimeout(() => playBlip(n, 0.2, 'sawtooth', 0.08), i * 60);
+      });
+    }
+
+    function playLaserZap() {
+      const ctxA = getAudioCtx();
+      const osc = ctxA.createOscillator();
+      const gain = ctxA.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(1800, ctxA.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(120, ctxA.currentTime + 0.25);
+      gain.gain.setValueAtTime(0.15, ctxA.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctxA.currentTime + 0.25);
+      osc.connect(gain);
+      gain.connect(ctxA.destination);
+      osc.start();
+      osc.stop(ctxA.currentTime + 0.25);
+    }
+
+    function playArcadeCoin() {
+      playBlip(988, 0.08, 'square', 0.08);
+      setTimeout(() => playBlip(1319, 0.15, 'square', 0.08), 90);
+    }
+
+    // ---------- Interaction ----------
+    const wordEl = document.getElementById('word');
+
+    function bigReaction(x, y) {
+      spawnBurst(x, y, 80);
+      spawnRipple(x, y);
+      spawnLaser();
+      spawnEmojiBurst(x, y, 16);
+      triggerZoomPunch();
+      document.body.classList.add('shake');
+      setTimeout(() => document.body.classList.remove('shake'), 400);
+      const sounds = [playSynthStab, playLaserZap, playArcadeCoin];
+      sounds[Math.floor(Math.random() * sounds.length)]();
+    }
+
+    window.addEventListener('click', (e) => {
+      bigReaction(e.clientX, e.clientY);
+    });
+
+    let lastMove = 0;
+    window.addEventListener('mousemove', (e) => {
+      const now = Date.now();
+      if (now - lastMove > 60) {
+        lastMove = now;
+        spawnBurst(e.clientX, e.clientY, 4);
+        if (Math.random() < 0.12) playBlip(700 + Math.random() * 500, 0.06, 'square', 0.03);
+      }
+    });
+
+    wordEl.addEventListener('mouseenter', () => {
+      playArcadeCoin();
+    });
+
+    // ---------- Random ambient effects loop ----------
+    function randomAmbient() {
+      const roll = Math.random();
+      if (roll < 0.2) {
+        spawnLaser();
+        playLaserZap();
+      } else if (roll < 0.4) {
+        spawnBurst(Math.random() * width, Math.random() * height, 50);
+        playSynthStab();
+      } else if (roll < 0.6) {
+        spawnRipple(Math.random() * width, Math.random() * height);
+        playArcadeCoin();
+      } else if (roll < 0.75) {
+        spawnEmojiBurst(Math.random() * width, Math.random() * height, 18);
+        playArcadeCoin();
+      } else if (roll < 0.85) {
+        triggerStrobe();
+        triggerZoomPunch();
+        playLaserZap();
+      } else if (roll < 0.95) {
+        startDvdBounce(4000 + Math.random() * 2000);
+        playSynthStab();
+      } else if (roll < 0.98) {
+        const h1 = Math.floor(Math.random() * 360);
+        const h2 = (h1 + 120 + Math.random() * 120) % 360;
+        document.body.style.background = `radial-gradient(ellipse at ${Math.random() * 100}% ${Math.random() * 100}%, hsl(${h1}, 70%, 12%) 0%, hsl(${h2}, 70%, 5%) 70%)`;
+        playBlip(300 + Math.random() * 300, 0.3, 'triangle', 0.05);
+      } else {
+        wordEl.style.filter = `brightness(${1 + Math.random() * 0.5}) saturate(${1 + Math.random()})`;
+        playBlip(100 + Math.random() * 200, 0.25, 'square', 0.06);
+      }
+      setTimeout(randomAmbient, 1500 + Math.random() * 3000);
+    }
+    setTimeout(randomAmbient, 2000);
+
+    // initial burst on load
+    window.addEventListener('load', () => {
+      spawnBurst(width / 2, height / 2, 120);
+      spawnEmojiBurst(width / 2, height / 2, 24);
+      setTimeout(() => startDvdBounce(5000), 3000);
+      setTimeout(() => { triggerStrobe(); triggerZoomPunch(); }, 1500);
+    });
+  </script>
+</body>
+</html>
