@@ -18,9 +18,20 @@
     background: #0d0221;
   }
 
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(255, 20, 147, 0.25) 100%);
+    box-shadow: inset 0 0 18vmin rgba(255, 20, 147, 0.5);
+  }
+
   #stage {
     position: relative;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     z-index: 1;
@@ -36,10 +47,11 @@
     -webkit-text-stroke: 2px #ff2fd0;
     animation: pulse 2.2s ease-in-out infinite, wobble 4s ease-in-out infinite, rainbow 4s linear infinite;
     text-shadow:
-      0 0 10px #ff2fd0,
-      0 0 25px #7b2ff7,
+      0 0 10px #ff69b4,
+      0 0 25px #ff1493,
       0 0 45px #00e5ff,
-      0 0 80px #ff2fd0;
+      0 0 80px #ff2fd0,
+      0 0 130px #ff69b4;
     user-select: none;
     cursor: pointer;
   }
@@ -141,6 +153,41 @@
     will-change: transform;
   }
 
+  #countdown {
+    margin-top: 1.5vmin;
+    display: flex;
+    gap: 2vmin;
+    z-index: 1;
+    font-family: "Courier New", monospace;
+    user-select: none;
+  }
+
+  #countdown .unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  #countdown .value {
+    font-size: 4.5vmin;
+    font-weight: 900;
+    color: #fffbe8;
+    text-shadow:
+      0 0 8px #ff69b4,
+      0 0 18px #ff1493,
+      0 0 34px #00e5ff;
+    min-width: 2.2ch;
+    text-align: center;
+  }
+
+  #countdown .label {
+    font-size: 1.4vmin;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #ff69b4;
+    margin-top: 0.3vmin;
+  }
+
 
   #strobe {
     position: fixed;
@@ -189,6 +236,7 @@
 
   <div id="stage">
     <div class="word glitch" id="word">Nej</div>
+    <div id="countdown"></div>
   </div>
 
   <script>
@@ -229,6 +277,48 @@
     }
     stepEmojis();
 
+    // ---------- Countdown to 5 July 2027 ----------
+    const countdownTarget = new Date('2027-07-05T00:00:00');
+    const countdownEl = document.getElementById('countdown');
+    const countdownUnits = [
+      { label: 'Dage', ms: 24 * 60 * 60 * 1000 },
+      { label: 'Timer', ms: 60 * 60 * 1000 },
+      { label: 'Minutter', ms: 60 * 1000 },
+      { label: 'Sekunder', ms: 1000 },
+      { label: 'Ms', ms: 1 }
+    ];
+    countdownUnits.forEach(u => {
+      const unitEl = document.createElement('div');
+      unitEl.className = 'unit';
+      unitEl.innerHTML = `<span class="value">0</span><span class="label">${u.label}</span>`;
+      u.valueEl = unitEl.querySelector('.value');
+      countdownEl.appendChild(unitEl);
+    });
+
+    function updateCountdown() {
+      let remaining = countdownTarget - Date.now();
+      if (remaining < 0) remaining = 0;
+
+      let days = Math.floor(remaining / countdownUnits[0].ms);
+      remaining -= days * countdownUnits[0].ms;
+      let hours = Math.floor(remaining / countdownUnits[1].ms);
+      remaining -= hours * countdownUnits[1].ms;
+      let minutes = Math.floor(remaining / countdownUnits[2].ms);
+      remaining -= minutes * countdownUnits[2].ms;
+      let seconds = Math.floor(remaining / countdownUnits[3].ms);
+      remaining -= seconds * countdownUnits[3].ms;
+      let millis = Math.floor(remaining);
+
+      countdownUnits[0].valueEl.textContent = days;
+      countdownUnits[1].valueEl.textContent = String(hours).padStart(2, '0');
+      countdownUnits[2].valueEl.textContent = String(minutes).padStart(2, '0');
+      countdownUnits[3].valueEl.textContent = String(seconds).padStart(2, '0');
+      countdownUnits[4].valueEl.textContent = String(millis).padStart(3, '0');
+
+      requestAnimationFrame(updateCountdown);
+    }
+    updateCountdown();
+
     // ---------- Canvas setup ----------
     const bgCanvas = document.getElementById('bg');
     const bgCtx = bgCanvas.getContext('2d');
@@ -245,7 +335,7 @@
 
     // ---------- Background neon particles ----------
     const particles = Array.from({ length: 140 }, () => makeParticle());
-    const neonHues = [320, 190, 50, 280];
+    const neonHues = [330, 330, 320, 190, 50, 280];
 
     function makeParticle() {
       return {
